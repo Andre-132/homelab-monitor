@@ -2,6 +2,8 @@ from dotenv import load_dotenv
 import os
 import requests
 import json
+from requests.exceptions import Timeout, ConnectionError, RequestException, HTTPError
+import sys
 
 def bytes_to_gb(b):
     return round(b / (1024 * 1024 * 1024), 2)
@@ -31,13 +33,28 @@ prox_host = "https://192.168.1.4:8006/api2/json/nodes/pve/status"
 # Build the URL
 url = f"{prox_host}"
 #print(url)
+timeout_duration = (10)
 
 # Build the header
 headers = {'authorization': f'{prox_id}{prox_token}'}
 #print(headers)
 
 # Send the request
-response = requests.get(url, timeout=10, headers=headers, verify="pve-root-ca.pem")
+try:
+    response = requests.get(url, timeout=timeout_duration, headers=headers, verify="pve-root-ca.pem")
+    response.raise_for_status()
+except Timeout:
+    print("Error: The request timed out while connecting or reading the response.")
+    sys.exit(1)
+except ConnectionError:
+    print(f"Error: failed to connect to server at {prox_host}")
+    sys.exit(1)
+except HTTPError:
+    print(f"Error: Proxmox returned {response.status_code}. Check your API token in .env and its permissions.")
+    sys.exit(1)
+except RequestException as e:
+    print(f"Error: unexpected problem with the request: {e}")
+    sys.exit(1)
 # print(response.status_code)
 
 # Convert response to python data
