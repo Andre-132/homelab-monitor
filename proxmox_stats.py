@@ -5,22 +5,22 @@ import json
 
 def bytes_to_gb(b):
     return round(b / (1024 * 1024 * 1024), 2)
-print(bytes_to_gb(21530423296))   
+# print(bytes_to_gb(21530423296))   
 
 def fraction_to_percent(f):
-    return round(f * 100, 1)
-print(fraction_to_percent(0.0571204967800347))
+    return round(f * 100, 2)
+# print(fraction_to_percent(0.0571204967800347))
 
 def seconds_to_days(s):
     return round(s / 86400, 2)
-print(seconds_to_days(5364363))
+# print(seconds_to_days(5364363))
 
 def memory_percent(used, total):
     try:
         return round(used / total * 100, 1)
     except ZeroDivisionError:
         return 0
-print(memory_percent(21530423296, 33631784960))
+# print(memory_percent(21530423296, 33631784960))
 
 load_dotenv()
 
@@ -55,3 +55,8 @@ io_wait = node.get("wait")
 cpu_cores = node.get("cpuinfo", {}).get("cpus")
 uptime = node.get("uptime")
 # print(memory_used, memory_total, cpu_used, io_wait, cpu_cores, uptime)
+
+print(f"CPU: {fraction_to_percent(cpu_used)}% ({cpu_cores} cores)")
+print(f"IO wait: {fraction_to_percent(io_wait)}%")
+print(f"Memory: {bytes_to_gb(memory_used)} / {bytes_to_gb(memory_total)} GB ({memory_percent(memory_used, memory_total)}%)")
+print(f"Uptime: {seconds_to_days(uptime)} days")
