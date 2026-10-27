@@ -39,41 +39,56 @@ timeout_duration = (10)
 headers = {'authorization': f'{prox_id}{prox_token}'}
 #print(headers)
 
+def get_node_status():
 # Send the request
-try:
-    response = requests.get(url, timeout=timeout_duration, headers=headers, verify="pve-root-ca.pem")
-    response.raise_for_status()
-except Timeout:
-    print("Error: The request timed out while connecting or reading the response.")
-    sys.exit(1)
-except ConnectionError:
-    print(f"Error: failed to connect to server at {prox_host}")
-    sys.exit(1)
-except HTTPError:
-    print(f"Error: Proxmox returned {response.status_code}. Check your API token in .env and its permissions.")
-    sys.exit(1)
-except RequestException as e:
-    print(f"Error: unexpected problem with the request: {e}")
-    sys.exit(1)
-# print(response.status_code)
 
-# Convert response to python data
-data = response.json()
-readable_json = json.dumps(data, indent=2)
-# print(readable_json)
+    try:
+        response = requests.get(url, timeout=timeout_duration, headers=headers, verify="pve-root-ca.pem")
+        response.raise_for_status()
+    except Timeout:
+        print("Error: The request timed out while connecting or reading the response.")
+        sys.exit(1)
+    except ConnectionError:
+        print(f"Error: failed to connect to server at {prox_host}")
+        sys.exit(1)
+    except HTTPError:
+        print(f"Error: Proxmox returned {response.status_code}. Check your API token in .env and its permissions.")
+        sys.exit(1)
+    except RequestException as e:
+        print(f"Error: unexpected problem with the request: {e}")
+        sys.exit(1)
+    # print(response.status_code)
 
-#pull out raw values
-node = data["data"]
+    # Convert response to python data
+    data = response.json()
+    readable_json = json.dumps(data, indent=2)
+    # print(readable_json)
 
-memory_used = node.get("memory", {}).get("used")
-memory_total = node.get("memory", {}).get("total")
-cpu_used = node.get("cpu")
-io_wait = node.get("wait")
-cpu_cores = node.get("cpuinfo", {}).get("cpus")
-uptime = node.get("uptime")
+    #pull out raw values
+    node = data["data"]
+
+    memory_used = node.get("memory", {}).get("used")
+    memory_total = node.get("memory", {}).get("total")
+    cpu_used = node.get("cpu")
+    io_wait = node.get("wait")
+    cpu_cores = node.get("cpuinfo", {}).get("cpus")
+    uptime = node.get("uptime")
+
+    return {
+    "cpu_percent": fraction_to_percent(cpu_used),
+    "io_wait_percent": fraction_to_percent(io_wait),
+    "cores": cpu_cores,
+    "memory_used_gb": bytes_to_gb(memory_used),
+    "memory_total_gb": bytes_to_gb(memory_total),
+    "memory_percent": memory_percent(memory_used, memory_total),
+    "uptime_days": seconds_to_days(uptime)
+}
+
+if __name__ == "__main__":
+    status = get_node_status()
+
 # print(memory_used, memory_total, cpu_used, io_wait, cpu_cores, uptime)
-
-print(f"CPU: {fraction_to_percent(cpu_used)}% ({cpu_cores} cores)")
-print(f"IO wait: {fraction_to_percent(io_wait)}%")
-print(f"Memory: {bytes_to_gb(memory_used)} / {bytes_to_gb(memory_total)} GB ({memory_percent(memory_used, memory_total)}%)")
-print(f"Uptime: {seconds_to_days(uptime)} days")
+print(f"CPU: {status['cpu_percent']}% ({status['cores']} cores)")
+print(f"IO wait: {status['io_wait_percent']}%")
+print(f"Memory: {status['memory_used_gb']} / ({status['memory_total_gb']}) Percentage Used: ({status['memory_percent']}%)")
+print(f"Uptime: {status['uptime_days']} days")
